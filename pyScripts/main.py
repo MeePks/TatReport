@@ -67,5 +67,41 @@ df_pivot.columns = ['_'.join(col).strip() if isinstance(col, tuple) else col for
 df_pivot = df_pivot.reset_index()
 
 # Display the pivoted DataFrame
-df_pivot.to_csv('TatReport.csv')
+df_pivot.to_csv('TatReport.csv',index=False)
 
+#pivoting the table based on Mean
+df_pivot=df_results.pivot_table(
+    index='AuditName',
+    columns='frequency',
+    values=['AvgTAT(Mean)'],
+    aggfunc='first'
+)
+
+# Remove the multi-level column name (flatten it)
+df_pivot.columns.name = None  # Remove the 'frequency' header
+
+# Rename the columns to clean any extra metadata
+df_pivot.columns = [col if isinstance(col, str) else col[1].strip() for col in df_pivot.columns]
+df_pivot = df_pivot.reset_index()  # Reset the index to keep AuditName as a column
+
+# Display the pivoted DataFrame
+df_pivot.to_csv('TatReport_Mean.csv',index=False)
+
+#pivoting the table based on Median
+df_pivot=df_results.pivot_table(
+    index='AuditName',
+    columns='frequency',
+    values='TATMedian',
+    aggfunc='first'
+)
+
+# Remove the multi-level column name (flatten it)
+df_pivot.columns.name = None  # Remove the 'frequency' header
+
+
+# Rename the columns to clean any extra metadata
+df_pivot.columns = [col if isinstance(col, str) else col[1].strip() for col in df_pivot.columns]
+df_pivot = df_pivot.reset_index()  # Reset the index to keep AuditName as a column
+
+# Display the pivoted DataFrame
+df_pivot.to_csv('TatReport_Median.csv',index=False)
