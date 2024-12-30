@@ -22,6 +22,7 @@ from OrderedTbl
 )
 SELECT 
     Frequency,
+	count(*) as NoOfFiles,
 	Cast(avg(tat)/24.00 as decimal(18,4)) as [AvgTAT(Mean)],
     CASE 
         WHEN Rem = 1 THEN Cast(MAX(CASE WHEN RowNum = Medianfirst THEN tat ELSE NULL END)/24.00 as decimal(18,4))

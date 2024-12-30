@@ -1,6 +1,20 @@
 from configparser import ConfigParser
 import functions as fn
 import pandas as pd
+from openpyxl import load_workbook
+from openpyxl.utils.dataframe import dataframe_to_rows
+from openpyxl.worksheet.table import Table, TableStyleInfo
+from openpyxl.styles import Font
+
+#defining functions to get weigheted mean and Median
+# Define a function to calculate weighted mean
+def weighted_mean(group):
+    return round((group["AvgTAT(Mean)"] * group["NoOfFiles"]).sum() / group["NoOfFiles"].sum(), 2)
+
+# Define a function to calculate weighted median
+def weighted_median(group):
+    weighted_values = group.loc[group.index.repeat(group["NoOfFiles"])]
+    return round(weighted_values["TATMedian"].median(), 2)
 
 #reading configuration file
 config=ConfigParser()
@@ -49,13 +63,22 @@ for index,rows in df_server_list.iterrows():
        
 #converting list to dataframe for easy data manipulation      
 df_proc_exists_list=pd.DataFrame(results)
-#df_proc_exists_list.to_csv('TatProcExistlist.csv',index=False)
-
+df_proc_exists_list.to_csv('TatProcExistlist.csv',index=False)
 
 #generating overall Report and changeing the order of columns
-#df_results_column=['AuditName','Frequency','AvgTAT(Mean)','TATMedian']
-#df_results=df_results[df_results_column]
+df_results_column=['AuditName','Frequency','NoOfFiles','AvgTAT(Mean)','TATMedian']
+df_results=df_results[df_results_column]
 df_results.to_csv('TatReportDetails.csv', index=False)
+
+# Group by Frequency and calculate weighted mean and median
+weighted_results = (
+    df_results.groupby("Frequency")
+    .apply(lambda group: pd.Series({
+        "Weighted Mean TAT": weighted_mean(group),
+        "Weighted Median TAT": weighted_median(group)
+    }))
+    .reset_index()
+)
 
 #pivoting the table
 df_pivot=df_results.pivot_table(
@@ -69,10 +92,10 @@ df_pivot=df_results.pivot_table(
 df_pivot.columns = ['_'.join(col).strip() if isinstance(col, tuple) else col for col in df_pivot.columns]
 
 # Reset index for a clean DataFrame
-df_pivot = df_pivot.reset_index()
+df_pivot_overall = df_pivot.reset_index()
 
 # Display the pivoted DataFrame
-df_pivot.to_csv('TatReport.csv',index=False)
+df_pivot_overall.to_csv('TatReport.csv',index=False)
 
 #pivoting the table based on Mean
 df_pivot=df_results.pivot_table(
@@ -87,10 +110,10 @@ df_pivot.columns.name = None  # Remove the 'frequency' header
 
 # Rename the columns to clean any extra metadata
 df_pivot.columns = [col if isinstance(col, str) else col[1].strip() for col in df_pivot.columns]
-df_pivot = df_pivot.reset_index()  # Reset the index to keep AuditName as a column
+df_pivot_mean = df_pivot.reset_index()  # Reset the index to keep AuditName as a column
 
 # Display the pivoted DataFrame
-df_pivot.to_csv('TatReport_Mean.csv',index=False)
+df_pivot_mean.to_csv('TatReport_Mean.csv',index=False)
 
 #pivoting the table based on Median
 df_pivot=df_results.pivot_table(
@@ -106,7 +129,60 @@ df_pivot.columns.name = None  # Remove the 'frequency' header
 
 # Rename the columns to clean any extra metadata
 df_pivot.columns = [col if isinstance(col, str) else col[1].strip() for col in df_pivot.columns]
-df_pivot = df_pivot.reset_index()  # Reset the index to keep AuditName as a column
+df_pivot_median = df_pivot.reset_index()  # Reset the index to keep AuditName as a column
 
 # Display the pivoted DataFrame
-df_pivot.to_csv('TatReport_Median.csv',index=False)
+df_pivot_median.to_csv('TatReport_Median.csv',index=False)
+output_file = 'OverAllTatReport.xlsx'
+
+with pd.ExcelWriter(output_file) as writer:
+        weighted_results.to_excel(writer, sheet_name='AggReport', index=False)
+        df_results.to_excel(writer, sheet_name=f'TatDetails', index=False)
+        df_pivot_overall.to_excel(writer, sheet_name="PivotedDetails", startrow=0, startcol=0, index=False)
+        df_pivot_mean.to_excel(writer, sheet_name="MeanDetails", startrow=0, startcol=0, index=False)
+        df_pivot_median.to_excel(writer, sheet_name="MedianDetails", startrow=0, startcol=0, index=False)
+        
+
+# Add tables and headers with openpyxl
+wb = load_workbook(output_file)
+
+# Function to add a table
+def add_table(ws, startrow, startcol, df, table_name):
+    endrow = startrow + len(df)
+    endcol = startcol + len(df.columns) 
+    table = Table(
+        displayName=table_name,
+        ref=f"{chr(65 + startcol)}{startrow + 1}:{chr(65 + endcol)}{endrow}"
+    )
+    style = TableStyleInfo(
+        name="TableStyleMedium9",
+        showFirstColumn=False,
+        showLastColumn=False,
+        showRowStripes=True,
+        showColumnStripes=True,
+    )
+    table.tableStyleInfo = style
+    ws.add_table(table)
+
+# Add tables to the first sheet (AggReport)
+ws1 = wb["AggReport"]
+add_table(ws1, 0, 0, weighted_results, "AggReportTable")
+
+# Add tables to the second sheet (TatDetails)
+ws2 = wb["TatDetails"]
+add_table(ws2, 0, 0, df_results, "TatDetailsTable")
+
+# Add tables to the first sheet (AggReport)
+ws1 = wb["PivotedDetails"]
+add_table(ws1, 0, 0, weighted_results, "PivotedDetails")
+
+# Add tables to the second sheet (TatDetails)
+ws2 = wb["MeanDetails"]
+add_table(ws2, 0, 0, df_results, "MeanDetails")
+
+# Add tables to the second sheet (TatDetails)
+ws2 = wb["MedianDetails"]
+add_table(ws2, 0, 0, df_results, "MedianDetails")
+
+# Save the workbook
+wb.save(output_file)
