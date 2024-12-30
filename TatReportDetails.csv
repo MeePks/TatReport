@@ -13,13 +13,13 @@ Delhaize,Adhoc,11,0.4167,0.3333
 Delhaize,Monthly,1283,0.2917,0.2083
 HomeDepot,Daily (Weekdays),300,13.2083,13.3333
 HomeDepot,Weekly (Sunday),120,2.6667,0.9167
-HomeDepot,,231,2.1667,1.7083
+HomeDepot,N/A,231,2.1667,1.7083
 JCP,Daily,40,0.4583,0.5
 JCP,Weekly,107,0.75,0.25
 JCP,Monthly,15,7.5417,8.0833
 Kroger,Daily,303823,1.0,0.8333
 Kroger,Weekly,68040,0.7917,0.7083
-Kroger,,1984,0.0833,0.0833
+Kroger,N/A,1984,0.0833,0.0833
 Kroger,Periodic,6216,1.5,0.5417
 Loblaws,Daily,97,0.6667,0.6667
 Loblaws,Weekly,274,2.625,1.2917
@@ -28,7 +28,7 @@ Loblaws,Monthly,57,1.3333,0.9583
 Lowes,Weekly,1728,1.6667,1.1667
 Lowes,Monthly,137,1.25,1.6667
 PetSmart,Weekly,209,0.375,0.2083
-PetSmart,,4,0.375,0.125
+PetSmart,N/A,4,0.375,0.125
 RiteAid,Weekly,25,0.7083,0.7083
 RiteAid,Monthly,4,0.1667,0.0417
 RiteAid,Quarterly,216,3.9167,3.9167
@@ -42,7 +42,7 @@ Walgreens,Adhoc,3,2.5417,0.5
 Walmart,Daily,15110,0.0833,0.0833
 Walmart,Weekly,130,0.0417,0.0833
 Walmart,Monthly,1258,0.1667,0.1667
-Walmart,,15,0.9167,0.9583
+Walmart,N/A,15,0.9167,0.9583
 WalmartMX,Daily,766,2.0,1.9583
 WalmartMX,Weekly,151,1.8333,1.6667
 WalmartMX,BiWeekly,8,1.0833,1.0833

@@ -4,7 +4,30 @@ import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
 from openpyxl.worksheet.table import Table, TableStyleInfo
-from openpyxl.styles import Font
+from openpyxl.utils import get_column_letter
+
+def adjust_column_width(worksheet):
+    """
+    Adjust column widths based on the content in both data and header.
+    """
+    for col in worksheet.columns:
+        max_length = 0
+        col_letter = get_column_letter(col[0].column)  # Get the column letter
+        # Check the header (first row)
+        if col[0].value:
+            max_length = len(str(col[0].value))
+        
+        # Check the data (rest of the rows)
+        for cell in col:
+            try:
+                if cell.value:  # Check if the cell has a value
+                    max_length = max(max_length, len(str(cell.value)))
+            except Exception:
+                pass
+        
+        # Adjust the column width
+        adjusted_width = max_length + 5  # Add some padding
+        worksheet.column_dimensions[col_letter].width = adjusted_width
 
 #defining functions to get weigheted mean and Median
 # Define a function to calculate weighted mean
@@ -88,8 +111,14 @@ df_pivot=df_results.pivot_table(
     aggfunc='first'
 )
 
+# Reorder the columns to have mean and median for each frequency together
+df_pivot = df_pivot.reorder_levels([1, 0], axis=1).sort_index(axis=1, level=0)
+
 # Flatten the MultiIndex columns (if any)
-df_pivot.columns = ['_'.join(col).strip() if isinstance(col, tuple) else col for col in df_pivot.columns]
+df_pivot.columns = [
+    f"{freq} (Mean)" if metric == "AvgTAT(Mean)" else f"{freq} (Median)"
+    for freq, metric in df_pivot.columns
+]
 
 # Reset index for a clean DataFrame
 df_pivot_overall = df_pivot.reset_index()
@@ -135,12 +164,26 @@ df_pivot_median = df_pivot.reset_index()  # Reset the index to keep AuditName as
 df_pivot_median.to_csv('TatReport_Median.csv',index=False)
 output_file = 'OverAllTatReport.xlsx'
 
-with pd.ExcelWriter(output_file) as writer:
+with pd.ExcelWriter(output_file, engine="openpyxl") as writer:
         weighted_results.to_excel(writer, sheet_name='AggReport', index=False)
         df_results.to_excel(writer, sheet_name=f'TatDetails', index=False)
         df_pivot_overall.to_excel(writer, sheet_name="PivotedDetails", startrow=0, startcol=0, index=False)
         df_pivot_mean.to_excel(writer, sheet_name="MeanDetails", startrow=0, startcol=0, index=False)
         df_pivot_median.to_excel(writer, sheet_name="MedianDetails", startrow=0, startcol=0, index=False)
+
+        # Access the workbook and worksheet objects
+        workbook = writer.book
+
+        for sheet_name in workbook.sheetnames:
+            sheet = workbook[sheet_name]
+
+            if sheet_name == "PivotedDetails":
+                sheet.freeze_panes = sheet["B1"]
+
+            # Adjust column widths for the current sheet
+            adjust_column_width(sheet)
+
+
         
 
 # Add tables and headers with openpyxl
@@ -148,8 +191,8 @@ wb = load_workbook(output_file)
 
 # Function to add a table
 def add_table(ws, startrow, startcol, df, table_name):
-    endrow = startrow + len(df)
-    endcol = startcol + len(df.columns) 
+    endrow = startrow + len(df) +1
+    endcol = startcol + len(df.columns) -1
     table = Table(
         displayName=table_name,
         ref=f"{chr(65 + startcol)}{startrow + 1}:{chr(65 + endcol)}{endrow}"
@@ -173,16 +216,16 @@ ws2 = wb["TatDetails"]
 add_table(ws2, 0, 0, df_results, "TatDetailsTable")
 
 # Add tables to the first sheet (AggReport)
-ws1 = wb["PivotedDetails"]
-add_table(ws1, 0, 0, weighted_results, "PivotedDetails")
+ws3 = wb["PivotedDetails"]
+add_table(ws3, 0, 0, df_pivot_overall, "PivotedDetailsTable")
 
 # Add tables to the second sheet (TatDetails)
-ws2 = wb["MeanDetails"]
-add_table(ws2, 0, 0, df_results, "MeanDetails")
+ws4 = wb["MeanDetails"]
+add_table(ws4, 0, 0, df_pivot_mean, "MeanDetailstable")
 
 # Add tables to the second sheet (TatDetails)
-ws2 = wb["MedianDetails"]
-add_table(ws2, 0, 0, df_results, "MedianDetails")
+ws5 = wb["MedianDetails"]
+add_table(ws5, 0, 0, df_pivot_median, "MedianDetailsTable")
 
 # Save the workbook
 wb.save(output_file)

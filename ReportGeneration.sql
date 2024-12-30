@@ -21,7 +21,7 @@ Mediansecond=Case when Rem=1
 from OrderedTbl
 )
 SELECT 
-    Frequency,
+    Case when Isnull(Frequency,'')='' then 'N/A' Else Frequency end as Frequency,
 	count(*) as NoOfFiles,
 	Cast(avg(tat)/24.00 as decimal(18,4)) as [AvgTAT(Mean)],
     CASE 
