@@ -52,6 +52,8 @@ df_proc_exists_list=pd.DataFrame(results)
 
 #df_proc_exists_list.to_csv('TatProcExistlist.csv',index=False)
 
+df_results.to_csv('TatReportDetails.csv')
+
 #pivoting the table
 df_pivot=df_results.pivot_table(
     index='AuditName',
