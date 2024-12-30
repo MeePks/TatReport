@@ -49,15 +49,18 @@ for index,rows in df_server_list.iterrows():
        
 #converting list to dataframe for easy data manipulation      
 df_proc_exists_list=pd.DataFrame(results)
-
 #df_proc_exists_list.to_csv('TatProcExistlist.csv',index=False)
 
-df_results.to_csv('TatReportDetails.csv')
+
+#generating overall Report and changeing the order of columns
+#df_results_column=['AuditName','Frequency','AvgTAT(Mean)','TATMedian']
+#df_results=df_results[df_results_column]
+df_results.to_csv('TatReportDetails.csv', index=False)
 
 #pivoting the table
 df_pivot=df_results.pivot_table(
     index='AuditName',
-    columns='frequency',
+    columns='Frequency',
     values=['AvgTAT(Mean)','TATMedian'],
     aggfunc='first'
 )
@@ -74,7 +77,7 @@ df_pivot.to_csv('TatReport.csv',index=False)
 #pivoting the table based on Mean
 df_pivot=df_results.pivot_table(
     index='AuditName',
-    columns='frequency',
+    columns='Frequency',
     values=['AvgTAT(Mean)'],
     aggfunc='first'
 )
@@ -92,7 +95,7 @@ df_pivot.to_csv('TatReport_Mean.csv',index=False)
 #pivoting the table based on Median
 df_pivot=df_results.pivot_table(
     index='AuditName',
-    columns='frequency',
+    columns='Frequency',
     values='TATMedian',
     aggfunc='first'
 )

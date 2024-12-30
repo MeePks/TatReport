@@ -1,10 +1,10 @@
 
 With OrderedTbl as(
-Select frequency,
+Select Frequency,
 		tat,
-		ROW_NUMBER()over(partition by frequency order by tat) as RowNum,
-		TotalCount=count(*)over(partition by frequency),
-		Rem=count(*)over(partition by frequency)%2
+		ROW_NUMBER()over(partition by Frequency order by tat) as RowNum,
+		TotalCount=count(*)over(partition by Frequency),
+		Rem=count(*)over(partition by Frequency)%2
 from dbo.tat
 where TAT is not null
 and tat<> 0
@@ -21,14 +21,14 @@ Mediansecond=Case when Rem=1
 from OrderedTbl
 )
 SELECT 
-    frequency,
+    Frequency,
 	Cast(avg(tat)/24.00 as decimal(18,4)) as [AvgTAT(Mean)],
     CASE 
         WHEN Rem = 1 THEN Cast(MAX(CASE WHEN RowNum = Medianfirst THEN tat ELSE NULL END)/24.00 as decimal(18,4))
         ELSE Cast(AVG(CASE WHEN RowNum IN (Medianfirst, Mediansecond) THEN tat ELSE NULL END)/24.00 as decimal(18,4))
     END AS TATMedian
 FROM cteall
-GROUP BY frequency, Rem
+GROUP BY Frequency, Rem
 order by case when Frequency='Daily' then 1
 				when Frequency='Weekly' then 2
 				when Frequency='BiWeekly' then   3

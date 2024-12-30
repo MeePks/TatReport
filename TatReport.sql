@@ -36,7 +36,7 @@ from dbo.tat
 
 Go
 With OrderedTbl as(
-Select frequency,
+Select Frequency,
 		tat,
 		ROW_NUMBER()over(partition by frequency order by tat) as RowNum,
 		TotalCount=count(*)over(partition by frequency),
@@ -57,7 +57,7 @@ Mediansecond=Case when Rem=1
 from OrderedTbl
 )
 SELECT 
-    frequency,
+    Frequency,
 	Cast(avg(tat)/24.00 as decimal(18,4)) as [AvgTAT(Mean)],
     CASE 
         WHEN Rem = 1 THEN Cast(MAX(CASE WHEN RowNum = Medianfirst THEN tat ELSE NULL END)/24.00 as decimal(18,4))
