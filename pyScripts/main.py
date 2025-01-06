@@ -5,6 +5,7 @@ from openpyxl import load_workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
 from openpyxl.worksheet.table import Table, TableStyleInfo
 from openpyxl.utils import get_column_letter
+from openpyxl.chart import BarChart, Reference
 
 def adjust_column_width(worksheet):
     """
@@ -164,6 +165,10 @@ df_pivot_median = df_pivot.reset_index()  # Reset the index to keep AuditName as
 df_pivot_median.to_csv('TatReport_Median.csv',index=False)
 output_file = 'OverAllTatReport.xlsx'
 
+# Filter data for each frequency
+frequencies = ["Daily", "Weekly", "Monthly"]
+charts_positions = {"Daily": "H5", "Weekly": "H20", "Monthly": "H35"}
+
 with pd.ExcelWriter(output_file, engine="openpyxl") as writer:
         weighted_results.to_excel(writer, sheet_name='AggReport', index=False)
         df_results.to_excel(writer, sheet_name=f'TatDetails', index=False)
@@ -179,6 +184,7 @@ with pd.ExcelWriter(output_file, engine="openpyxl") as writer:
 
             if sheet_name == "PivotedDetails":
                 sheet.freeze_panes = sheet["B1"]
+                
 
             # Adjust column widths for the current sheet
             adjust_column_width(sheet)
