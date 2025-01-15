@@ -6,6 +6,18 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 from openpyxl.worksheet.table import Table, TableStyleInfo
 from openpyxl.utils import get_column_letter
 from openpyxl.chart import BarChart, Reference
+from datetime import datetime, timedelta
+
+# Get the start date (first day of the previous month)
+first_day_of_current_month = datetime.now().replace(day=1)
+start_date = (first_day_of_current_month - timedelta(days=1)).replace(day=1)
+
+# Get the end date (last day of the previous month)
+end_date = first_day_of_current_month - timedelta(days=1)
+
+# Convert to `date` objects if needed
+start_date = start_date.date()
+end_date = end_date.date()
 
 def adjust_column_width(worksheet):
     """
@@ -63,6 +75,15 @@ df_results=pd.DataFrame()
 with open(sql_script,'r') as file:
     report_generate_query=file.read()
 
+
+sp_exec_query=f'''
+DECLARE	@stdate date=(SELECT DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()) - 1, 0)) 
+DECLARE	@eddate date=(SELECT EOMONTH(GETDATE(), -1))
+EXEC [dbo].[__getTat]
+		@startDate = {start_date} ,
+		@EndDate = {end_date}
+'''
+
 #iterating through server list
 for index,rows in df_server_list.iterrows():
     #iterate only through active audits
@@ -71,6 +92,8 @@ for index,rows in df_server_list.iterrows():
        df_proc=pd.read_sql_query(query_proc_exists,audit_conn,index_col=None) #checking if proc exists
        #Getting report with the help of sql script Reportgeneration.sql
        try:
+            with audit_conn.connect() as connection:
+                connection.execute(sp_exec_query.strip())
             df_result=pd.read_sql_query(report_generate_query,audit_conn,index_col=None)
             df_result['AuditName']=rows['AuditName']
             df_results=pd.concat([df_results,df_result])
@@ -92,7 +115,7 @@ df_proc_exists_list.to_csv('TatProcExistlist.csv',index=False)
 #generating overall Report and changeing the order of columns
 df_results_column=['AuditName','Frequency','NoOfFiles','AvgTAT(Mean)','TATMedian']
 df_results=df_results[df_results_column]
-df_results.to_csv('TatReportDetails.csv', index=False)
+#df_results.to_csv('TatReportDetails.csv', index=False)
 
 # Group by Frequency and calculate weighted mean and median
 weighted_results = (
@@ -125,7 +148,7 @@ df_pivot.columns = [
 df_pivot_overall = df_pivot.reset_index()
 
 # Display the pivoted DataFrame
-df_pivot_overall.to_csv('TatReport.csv',index=False)
+#df_pivot_overall.to_csv('TatReport.csv',index=False)
 
 #pivoting the table based on Mean
 df_pivot=df_results.pivot_table(
@@ -143,7 +166,7 @@ df_pivot.columns = [col if isinstance(col, str) else col[1].strip() for col in d
 df_pivot_mean = df_pivot.reset_index()  # Reset the index to keep AuditName as a column
 
 # Display the pivoted DataFrame
-df_pivot_mean.to_csv('TatReport_Mean.csv',index=False)
+#df_pivot_mean.to_csv('TatReport_Mean.csv',index=False)
 
 #pivoting the table based on Median
 df_pivot=df_results.pivot_table(
@@ -162,7 +185,7 @@ df_pivot.columns = [col if isinstance(col, str) else col[1].strip() for col in d
 df_pivot_median = df_pivot.reset_index()  # Reset the index to keep AuditName as a column
 
 # Display the pivoted DataFrame
-df_pivot_median.to_csv('TatReport_Median.csv',index=False)
+#df_pivot_median.to_csv('TatReport_Median.csv',index=False)
 output_file = 'OverAllTatReport.xlsx'
 
 # Filter data for each frequency
