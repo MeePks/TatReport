@@ -7,6 +7,7 @@ from openpyxl.worksheet.table import Table, TableStyleInfo
 from openpyxl.utils import get_column_letter
 from openpyxl.chart import BarChart, Reference
 from datetime import datetime, timedelta
+from sqlalchemy import text
 
 # Get the start date (first day of the previous month)
 first_day_of_current_month = datetime.now().replace(day=1)
@@ -77,11 +78,7 @@ with open(sql_script,'r') as file:
 
 
 sp_exec_query=f'''
-DECLARE	@stdate date=(SELECT DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()) - 1, 0)) 
-DECLARE	@eddate date=(SELECT EOMONTH(GETDATE(), -1))
-EXEC [dbo].[__getTat]
-		@startDate = {start_date} ,
-		@EndDate = {end_date}
+EXEC [dbo].[__getTat] @startDate = '{start_date}', @EndDate = '{end_date}'
 '''
 
 #iterating through server list
@@ -93,10 +90,11 @@ for index,rows in df_server_list.iterrows():
        #Getting report with the help of sql script Reportgeneration.sql
        try:
             with audit_conn.connect() as connection:
-                connection.execute(sp_exec_query.strip())
+                connection.execute(text(sp_exec_query.strip()))
             df_result=pd.read_sql_query(report_generate_query,audit_conn,index_col=None)
             df_result['AuditName']=rows['AuditName']
-            df_results=pd.concat([df_results,df_result])
+            if not df_result.empty:
+                df_results=pd.concat([df_results,df_result])
        except:
            print(f'Error executing script for {rows["AuditName"]}')
 
@@ -119,13 +117,15 @@ df_results=df_results[df_results_column]
 
 # Group by Frequency and calculate weighted mean and median
 weighted_results = (
-    df_results.groupby("Frequency")
+    df_results.groupby("Frequency", group_keys=False)
     .apply(lambda group: pd.Series({
         "Weighted Mean TAT": weighted_mean(group),
         "Weighted Median TAT": weighted_median(group)
     }))
     .reset_index()
 )
+weighted_results.insert(0, "FromDate", start_date)
+weighted_results.insert(1, "ToDate", end_date)
 
 #pivoting the table
 df_pivot=df_results.pivot_table(
@@ -220,7 +220,7 @@ wb = load_workbook(output_file)
 
 # Function to add a table
 def add_table(ws, startrow, startcol, df, table_name):
-    endrow = startrow + len(df) +1
+    endrow = startrow + len(df) + 1
     endcol = startcol + len(df.columns) -1
     table = Table(
         displayName=table_name,
@@ -246,7 +246,7 @@ add_table(ws2, 0, 0, df_results, "TatDetailsTable")
 
 # Add tables to the first sheet (AggReport)
 ws3 = wb["PivotedDetails"]
-add_table(ws3, 0, 0, df_pivot_overall, "PivotedDetailsTable")
+#add_table(ws3, 0, 0, df_pivot_overall, "PivotedDetailsTable")
 
 # Add tables to the second sheet (TatDetails)
 ws4 = wb["MeanDetails"]
