@@ -16,7 +16,7 @@ Rona,Rona.stg.sql.ccaintranet.com,RonaDpGroupDataTracker,0
 StaplesUS,staplesUS.stg.sql.ccaintranet.com,StaplesUSDpGroupLoadLogger,0
 Wakefern,Wakefern.stg.sql.ccaintranet.com,WakefernDPGroupTracker,1
 Walgreens,Walgreens.stg.sql.ccaintranet.com,WalgreensDpGroupDataTracker,1
-Walmart,Walmart.stg.sql.ccaintranet.com,WMTDpGroupTracker,0
+Walmart,Walmart.stg.sql.ccaintranet.com,WMTDpGroupTracker,1
 WalmartMX,WalmartMX.stg.sql.ccaintranet.com,WalmartMXDpGroupTracker,1
 Ingles,ingles.stg.sql.ccaintranet.com,InglesDataTracker,1
 GiantEagle,gianteagle.stg.sql.ccaintranet.com,GiantEagleDPGroupTracker,1

@@ -59,11 +59,14 @@ config.read('.\pyScripts\config.ini')
 centralized_server=config['sqlconn']['centralized_server']
 centralized_db=config['sqlconn']['centralized_db']
 sql_script='ReportGeneration.sql'
+perofOLA='TatPerReport.sql'
 
 #connecting to the centralized server in which there is list of all the servers
+
 centralized_conn=fn.open_alchemy_conn(centralized_server,centralized_db)
 df_server_list=pd.read_sql_table('SSIS_ConfigurationInfo',centralized_conn)
-centralized_conn.dispose()
+df_Ola_details=pd.read_sql_table('___RetailOLA',centralized_conn)
+
 
 #query to check if a stored proc exists or not
 query_proc_exists=r"SELECT COUNT(*) AS ProcExist FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_NAME = '__getTat' AND ROUTINE_TYPE = 'PROCEDURE'"
@@ -71,11 +74,15 @@ query_proc_exists=r"SELECT COUNT(*) AS ProcExist FROM INFORMATION_SCHEMA.ROUTINE
 # Initialize an empty list to store the results
 results = []
 df_results=pd.DataFrame()
+df_tats=pd.DataFrame()
+df_olaTat_details=pd.DataFrame()
 
 #open sql script to read the query
 with open(sql_script,'r') as file:
     report_generate_query=file.read()
 
+with open(perofOLA,'r') as file:
+    ola_generate_query=file.read()
 
 sp_exec_query=f'''
 EXEC [dbo].[__getTat] @startDate = '{start_date}', @EndDate = '{end_date}'
@@ -91,10 +98,26 @@ for index,rows in df_server_list.iterrows():
        try:
             with audit_conn.connect() as connection:
                 connection.execute(text(sp_exec_query.strip()))
+            df_Ola_details.to_sql('___OLADetails',audit_conn,schema='dbo',if_exists='replace')
+
+            #getting Tatsummary report for each audits
             df_result=pd.read_sql_query(report_generate_query,audit_conn,index_col=None)
             df_result['AuditName']=rows['AuditName']
             if not df_result.empty:
                 df_results=pd.concat([df_results,df_result])
+
+            #getting percentage of Tat fullfilled
+                
+
+            df_olaTat_detail=pd.read_sql_query(ola_generate_query,audit_conn,index_col=None)
+            df_olaTat_detail['AuditName']=rows['AuditName']
+            if not df_olaTat_detail.empty:
+                df_olaTat_details=pd.concat([df_olaTat_details,df_olaTat_detail])
+
+            #getting entire tat details so to produce tat details of not getting fullfillled
+            df_tat=pd.read_sql_table('tat',audit_conn,schema='dbo',index_col=None)
+            if not df_tat.empty:
+                df_tats=pd.concat([df_tats,df_tat])
        except:
            print(f'Error executing script for {rows["AuditName"]}')
 
@@ -105,6 +128,10 @@ for index,rows in df_server_list.iterrows():
            'DatabaseName':rows['InventoryLogDB'],
            'ProcExists':df_proc['ProcExist'][0]
            })
+       
+#getting details of tat and getting if it fullfilled the OLA
+df_results_column=['AuditName','Frequency','NoOfFiles','AvgTAT(Mean)','TATMedian','OLAMetPer','OLANotMetPer']
+df_olaTat_details=df_olaTat_details[df_results_column]
        
 #converting list to dataframe for easy data manipulation      
 df_proc_exists_list=pd.DataFrame(results)
@@ -194,10 +221,11 @@ charts_positions = {"Daily": "H5", "Weekly": "H20", "Monthly": "H35"}
 
 with pd.ExcelWriter(output_file, engine="openpyxl") as writer:
         weighted_results.to_excel(writer, sheet_name='AggReport', index=False)
-        df_results.to_excel(writer, sheet_name=f'TatDetails', index=False)
+        df_olaTat_details.to_excel(writer, sheet_name=f'TatDetails', index=False)
         df_pivot_overall.to_excel(writer, sheet_name="PivotedDetails", startrow=0, startcol=0, index=False)
         df_pivot_mean.to_excel(writer, sheet_name="MeanDetails", startrow=0, startcol=0, index=False)
         df_pivot_median.to_excel(writer, sheet_name="MedianDetails", startrow=0, startcol=0, index=False)
+        df_Ola_details.to_excel(writer,sheet_name="OLA", startrow=0, startcol=0, index=False)
 
         # Access the workbook and worksheet objects
         workbook = writer.book
@@ -242,7 +270,7 @@ add_table(ws1, 0, 0, weighted_results, "AggReportTable")
 
 # Add tables to the second sheet (TatDetails)
 ws2 = wb["TatDetails"]
-add_table(ws2, 0, 0, df_results, "TatDetailsTable")
+add_table(ws2, 0, 0, df_olaTat_details, "TatDetailsTable")
 
 # Add tables to the first sheet (AggReport)
 ws3 = wb["PivotedDetails"]
@@ -255,6 +283,10 @@ add_table(ws4, 0, 0, df_pivot_mean, "MeanDetailstable")
 # Add tables to the second sheet (TatDetails)
 ws5 = wb["MedianDetails"]
 add_table(ws5, 0, 0, df_pivot_median, "MedianDetailsTable")
+
+ws6 = wb["OLA"]
+add_table(ws6, 0, 0, df_Ola_details, "OLA")
+
 
 # Save the workbook
 wb.save(output_file)
