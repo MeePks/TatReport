@@ -10,17 +10,27 @@ from datetime import datetime, timedelta
 from sqlalchemy import text
 import sendEMail as se
 
+
+# Get the current date
+today = datetime.today()
+
+# Get the first day of the current month and subtract one day to get the last day of the previous month
+previous_month_date = today.replace(day=1) - timedelta(days=1)
+
+# Store in a single variable
+report_date = previous_month_date.strftime("%B %Y")  # Example: "January 2025"
+
 # Get the start date (first day of the previous month)
 first_day_of_current_month = datetime.now().replace(day=1)
 start_date = (first_day_of_current_month - timedelta(days=1)).replace(day=1)
 
 # Get the end date (last day of the previous month)
 end_date = first_day_of_current_month - timedelta(days=1)
-output_file = rf'Y:\Data\Retail\WalmartMX\Development\Pikesh.Maharjan\RetailReports\TAT\Tat_ '+rf'{start_date}_{end_date}.xlsx'
 
 # Convert to `date` objects if needed
 start_date = start_date.date()
 end_date = end_date.date()
+output_file = rf'Y:\Data\Retail\WalmartMX\Development\Pikesh.Maharjan\RetailReports\TAT\Tat_ '+rf'{start_date}_{end_date}.xlsx'
 
 def adjust_column_width(worksheet):
     """
@@ -98,8 +108,8 @@ for index,rows in df_server_list.iterrows():
        df_proc=pd.read_sql_query(query_proc_exists,audit_conn,index_col=None) #checking if proc exists
        #Getting report with the help of sql script Reportgeneration.sql
        try:
-            with audit_conn.connect() as connection:
-                connection.execute(text(sp_exec_query.strip()))
+            #with audit_conn.connect() as connection:
+                #connection.execute(text(sp_exec_query.strip()))
             df_Ola_details.to_sql('___OLADetails',audit_conn,schema='dbo',if_exists='replace')
 
             #getting Tatsummary report for each audits
@@ -293,4 +303,4 @@ add_table(ws6, 0, 0, df_Ola_details, "OLA")
 # Save the workbook
 wb.save(output_file)
 
-se.send_email(from_date, to_date, report_date, path, schedule)
+se.send_email(start_date, end_date, report_date, output_file, '')
