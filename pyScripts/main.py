@@ -8,6 +8,7 @@ from openpyxl.utils import get_column_letter
 from openpyxl.chart import BarChart, Reference
 from datetime import datetime, timedelta
 from sqlalchemy import text
+import sendEMail as se
 
 # Get the start date (first day of the previous month)
 first_day_of_current_month = datetime.now().replace(day=1)
@@ -15,6 +16,7 @@ start_date = (first_day_of_current_month - timedelta(days=1)).replace(day=1)
 
 # Get the end date (last day of the previous month)
 end_date = first_day_of_current_month - timedelta(days=1)
+output_file = rf'Y:\Data\Retail\WalmartMX\Development\Pikesh.Maharjan\RetailReports\TAT\Tat_ '+rf'{start_date}_{end_date}.xlsx'
 
 # Convert to `date` objects if needed
 start_date = start_date.date()
@@ -213,7 +215,7 @@ df_pivot_median = df_pivot.reset_index()  # Reset the index to keep AuditName as
 
 # Display the pivoted DataFrame
 #df_pivot_median.to_csv('TatReport_Median.csv',index=False)
-output_file = 'OverAllTatReport.xlsx'
+
 
 # Filter data for each frequency
 frequencies = ["Daily", "Weekly", "Monthly"]
@@ -290,3 +292,5 @@ add_table(ws6, 0, 0, df_Ola_details, "OLA")
 
 # Save the workbook
 wb.save(output_file)
+
+se.send_email(from_date, to_date, report_date, path, schedule)
