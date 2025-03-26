@@ -48,7 +48,7 @@ Pikesh Maharjan
     # Check if the file exists and send email accordingly
     if os.path.exists(path):
         send_mail(
-            mail_to="Neeraj.Manandhar@cotiviti.com",
+            mail_to="Pikesh.Maharjan@cotiviti.com",
             cc="Pikesh.Maharjan@cotiviti.com",
             bcc="Pikesh.Maharjan@cotiviti.com",
             subject=f"TAT Report for Retail RCA for {report_date}",

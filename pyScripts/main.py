@@ -108,8 +108,11 @@ for index,rows in df_server_list.iterrows():
        df_proc=pd.read_sql_query(query_proc_exists,audit_conn,index_col=None) #checking if proc exists
        #Getting report with the help of sql script Reportgeneration.sql
        try:
-            #with audit_conn.connect() as connection:
-                #connection.execute(text(sp_exec_query.strip()))
+            with audit_conn.connect() as connection:
+                print(f'Executing script for {rows["AuditName"]}')
+                connection.execute(text(sp_exec_query.strip()))
+                connection.commit()
+                print(f'Executed script for {rows["AuditName"]}')
             df_Ola_details.to_sql('___OLADetails',audit_conn,schema='dbo',if_exists='replace')
 
             #getting Tatsummary report for each audits
@@ -119,14 +122,13 @@ for index,rows in df_server_list.iterrows():
                 df_results=pd.concat([df_results,df_result])
 
             #getting percentage of Tat fullfilled
-                
-
             df_olaTat_detail=pd.read_sql_query(ola_generate_query,audit_conn,index_col=None)
             df_olaTat_detail['AuditName']=rows['AuditName']
             if not df_olaTat_detail.empty:
                 df_olaTat_details=pd.concat([df_olaTat_details,df_olaTat_detail])
 
             #getting entire tat details so to produce tat details of not getting fullfillled
+            print(f'Getting Tat Report for {rows["AuditName"]}')
             df_tat=pd.read_sql_table('tat',audit_conn,schema='dbo',index_col=None)
             if not df_tat.empty:
                 df_tats=pd.concat([df_tats,df_tat])
@@ -165,6 +167,16 @@ weighted_results = (
 )
 weighted_results.insert(0, "FromDate", start_date)
 weighted_results.insert(1, "ToDate", end_date)
+
+# Merge with OLA details
+# Select specific columns from df_Ola_details
+df_Ola_details_selected = df_Ola_details[['Days','Frequency']] 
+
+# Rename columns
+df_Ola_details_selected = df_Ola_details_selected.rename(columns={'Days': 'OLAInDays'}) 
+
+# Merge with selected and renamed columns
+weighted_results = pd.merge(weighted_results, df_Ola_details_selected, on='Frequency', how='inner')
 
 #pivoting the table
 df_pivot=df_results.pivot_table(

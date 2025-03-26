@@ -13,3 +13,7 @@ end_date = end_date.date()
 
 print(f"Start Date: {start_date}")
 print(f"End Date: {end_date}")
+sp_exec_query=f'''
+EXEC [dbo].[__getTat] @startDate = Cast('{start_date}' as date), @EndDate = Cast('{end_date} as date)'
+'''
+print(sp_exec_query)
