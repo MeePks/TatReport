@@ -1,6 +1,6 @@
 
 With OrderedTbl as(
-Select Frequency,
+Select coalesce(Frequency,'Adhoc') as Frequency,
 		tat,
 		ROW_NUMBER()over(partition by Frequency order by tat) as RowNum,
 		TotalCount=count(*)over(partition by Frequency),
